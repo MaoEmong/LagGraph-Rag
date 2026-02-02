@@ -1,0 +1,7 @@
+ProjectRAG overview:
+- This project builds a personal AI assistant using Retrieval Augmented Generation.
+- Core runtime is LangGraph.
+- API server is FastAPI.
+- Vector database is Chroma.
+- Metadata and checkpoints are stored in SQLite.
+

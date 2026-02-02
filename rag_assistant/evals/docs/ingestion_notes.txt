@@ -1,0 +1,7 @@
+Ingestion notes:
+- Supported file types: txt, md, pdf, docx.
+- Chunking policy uses token-based chunking.
+- Default chunk size range is 500 to 800 tokens.
+- Overlap is 100 tokens.
+- Duplicate ingestion is skipped when source_path and content hash are unchanged.
+

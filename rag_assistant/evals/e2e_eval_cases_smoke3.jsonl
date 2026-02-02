@@ -1,0 +1,3 @@
+{"id":"case-001","question":"Answer in English. In the ProjectRAG overview notes, what kind of assistant does this project build?","expected_keywords":["personal","AI assistant"],"keyword_match":"all","min_citations":1}
+{"id":"case-002","question":"Answer in English. In the ProjectRAG overview notes, which approach is used to build the assistant?","expected_keywords":["Retrieval Augmented Generation"],"keyword_match":"all","min_citations":1}
+{"id":"case-003","question":"Answer in English. In the ProjectRAG overview notes, what is the core runtime orchestrator?","expected_keywords":["LangGraph"],"keyword_match":"all","min_citations":1}

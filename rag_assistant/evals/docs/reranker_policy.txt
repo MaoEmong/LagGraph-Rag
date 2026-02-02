@@ -1,0 +1,6 @@
+Reranker policy:
+- Reranker modes: off, auto, always.
+- Default reranker mode is off.
+- The auto mode can trigger reranking when best distance is high.
+- Current default reranker distance threshold is 0.6.
+
