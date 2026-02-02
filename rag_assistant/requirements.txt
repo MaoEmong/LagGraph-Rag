@@ -1,0 +1,16 @@
+﻿fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+
+chromadb
+openai
+langgraph
+pdfplumber
+python-docx
+requests
+tiktoken
+pytesseract
+pymupdf
+pillow

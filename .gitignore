@@ -1,0 +1,39 @@
+# Secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Runtime data/logs (keep local, never commit)
+rag_assistant/data/
+rag_assistant/data/**
+rag_assistant/logs/
+rag_assistant/logs/**
+rag_assistant/tmp_*
+rag_assistant/tmp_*/**
+rag_assistant/tmp_user_*/
+rag_assistant/tmp_user_*/**
+
+# Evaluation artifacts (generated outputs/logs)
+rag_assistant/evals/results/
+rag_assistant/evals/results/**
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
