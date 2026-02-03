@@ -1,4 +1,4 @@
-# 00Info.md — 개인용 AI 비서 RAG 시스템 설계서 v1.0
+# 00Info.md — 개인용 AI 비서 RAG 시스템 설계서 v1.2
 
 > 목적: LangGraph 기반 RAG 시스템을 개인 AI 비서 용도로 구축하기 위한 **기술 설계서(Technical Specification)**
 
@@ -17,6 +17,7 @@
 
 * 질의응답 파이프라인
 * 문서 인제스트 파이프라인
+  - 문서(.txt/.md/.pdf/.docx) + 이미지 OCR 인제스트
 * 저장소 구조(Vector DB / Docstore / Checkpoint)
 * API 및 CLI 인터페이스
 
@@ -33,8 +34,9 @@
 | Vector DB        | Chroma (Persistent) |
 | Docstore         | SQLite              |
 | State Checkpoint | SQLite              |
+| OCR (옵션)        | Tesseract           |
 | Client (MVP)     | CLI                 |
-| Client (Target)  | Web                 |
+| Client (현재)    | Web(`/web`)         |
 
 ---
 
@@ -132,9 +134,10 @@ Chroma(VectorDB) + Docstore(SQLite)
 
 | 항목         | 값                |
 | ---------- | ---------------- |
-| chunk_size | 500 ~ 800 tokens |
-| overlap    | 100 tokens       |
-| 분리 기준      | 문단 우선, 코드 블록 별도  |
+| chunk_size | 500 ~ 800 tokens               |
+| overlap    | 100 tokens                     |
+| 분리 기준      | 문단 우선, 코드 블록 별도 유지           |
+| 구현 방식      | 토큰 기준 청킹(tiktoken, embedding 기준) |
 
 ---
 
@@ -258,6 +261,11 @@ CHROMA_PATH=./data/chroma
 DOCSTORE_PATH=./data/docstore.sqlite
 CHECKPOINT_PATH=./data/checkpoints.sqlite
 LOG_PATH=./logs
+OCR_ENABLED=true|false
+OCR_LANG=kor+eng
+OCR_DPI=300
+OCR_MAX_PAGES=5
+OCR_MIN_TEXT_LEN=50
 ```
 
 ---
@@ -277,7 +285,10 @@ rag_assistant/
     ingest/
       ingest.py
       loaders.py
+      discovery.py
+      cleaning.py
       chunking.py
+      ocr.py
     storage/
       vector_db.py
       docstore.py
@@ -319,16 +330,17 @@ rag_assistant/
 * [x] embedding 모델: OpenAI `text-embedding-3-small`
 * [x] thread 관리: 단일 thread 우선
 * [x] chunk size: 500~800 tokens 유지
+* [x] 토큰 기반 청킹 전환 완료
 * [x] reranker: 기본 미도입 (필요 시 on)
-* [x] web UI: 단순 SPA
+* [x] web UI: `/web` 단순 SPA 제공
+* [x] 이미지 OCR 인제스트 지원
 
 잔여 논의:
 
-* [ ] 토큰 기반 청킹 전환 여부
-* [ ] reranker 조건부 활성화 전략
+* [ ] 없음 (필요 시 신규 항목 추가)
 
 ---
 
 작성자: 김해준
-작성일: 2026-01-29
-버전: v1.1
+작성일: 2026-02-03
+버전: v1.2

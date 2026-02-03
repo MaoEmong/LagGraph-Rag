@@ -1,4 +1,4 @@
-# 05IngestionSpec.md — 문서 인제스트 파이프라인 명세서 v1.1
+# 05IngestionSpec.md — 문서 인제스트 파이프라인 명세서 v1.2
 
 > 기준 문서: `00Info.md`, `01Architecture.md`, `02ApiSpec.md`, `04GraphSpec.md`
 
@@ -40,7 +40,7 @@ flowchart TD
 * 단일 파일
 * 디렉토리 경로
 
-### 3.2 지원 파일 형식 (v1.0)
+### 3.2 지원 파일 형식 (v1.2)
 
 | 확장자   | 유형       |
 | ----- | -------- |
@@ -48,6 +48,13 @@ flowchart TD
 | .md   | Markdown |
 | .pdf  | PDF 문서   |
 | .docx | Word 문서  |
+| .png  | 이미지(OCR 대상) |
+| .jpg  | 이미지(OCR 대상) |
+| .jpeg | 이미지(OCR 대상) |
+| .webp | 이미지(OCR 대상) |
+| .bmp  | 이미지(OCR 대상) |
+| .tif  | 이미지(OCR 대상) |
+| .tiff | 이미지(OCR 대상) |
 
 ### 3.3 경로 정책
 
@@ -73,20 +80,32 @@ flowchart TD
 | md   | markdown parser       |
 | pdf  | pdfplumber 또는 PyMuPDF |
 | docx | python-docx           |
+| 이미지 | PyMuPDF 렌더링 + OCR    |
 
 출력: raw text
 
-### 4.2.1 OCR (이미지 기반 PDF 대응)
+### 4.2.1 OCR (이미지/PDF 스캔 대응)
 
 조건:
 
 * PDF 텍스트 추출 결과가 매우 짧거나 비어 있을 때
+* 이미지 파일 인제스트 시
 * `OCR_ENABLED=true` 인 경우에만 동작
 
 처리:
 
-* PyMuPDF로 페이지 렌더링 → Tesseract OCR로 텍스트 추출
+* PyMuPDF로 페이지/이미지 렌더링 → Tesseract OCR로 텍스트 추출
 * 언어/해상도/페이지 수는 환경 변수로 제어
+
+권장 환경 변수:
+
+```
+OCR_ENABLED=true|false
+OCR_LANG=kor+eng
+OCR_DPI=300
+OCR_MAX_PAGES=5
+OCR_MIN_TEXT_LEN=50
+```
 
 ### 4.3 Cleaning
 
@@ -235,7 +254,7 @@ assistant ingest <path>
 
 ---
 
-## 11. 확장 계획 (v1.2+)
+## 11. 확장 계획 (v1.3+)
 
 * HTML 파서 추가
 * 이미지 OCR 처리
@@ -245,5 +264,5 @@ assistant ingest <path>
 ---
 
 작성자: 김해준
-작성일: 2026-01-29
-버전: v1.1
+작성일: 2026-02-03
+버전: v1.2

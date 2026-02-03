@@ -1,4 +1,4 @@
-# 02ApiSpec.md — RAG AI 비서 API 명세서 v1.1
+# 02ApiSpec.md — RAG AI 비서 API 명세서 v1.2
 
 > 기준 문서: `00Info.md`, `01Architecture.md`
 
@@ -107,6 +107,18 @@ Authorization: Bearer <API_KEY>
   "data": {
     "thread_id": "default",
     "answer": "...",
+    "db_result": {
+      "rows": [
+        {"label": "sample", "value": 123, "as_of": "2026-02-03"}
+      ],
+      "schema": {
+        "label": "text",
+        "value": "number",
+        "as_of": "text"
+      },
+      "row_count": 1,
+      "warning": "mock data"
+    },
     "citations": [
       {
         "source_path": "/docs/architecture.md",
@@ -134,6 +146,7 @@ Authorization: Bearer <API_KEY>
 
 * tokens: OpenAI 사용량(프롬프트/완료/총합)
 * timing: 노드별/전체 처리 시간(ms)
+* db_result: DB 조회 결과(설정/라우팅에 따라 포함)
 
 ### 4.4 Response (실패)
 
@@ -155,6 +168,7 @@ Authorization: Bearer <API_KEY>
 | INVALID_REQUEST | 입력 검증 실패  |
 | LLM_ERROR       | LLM 호출 실패 |
 | VECTOR_DB_ERROR | 벡터 검색 실패  |
+| DB_ERROR        | DB 조회 실패  |
 | INTERNAL_ERROR  | 내부 서버 오류  |
 
 ---
@@ -302,5 +316,5 @@ Authorization: Bearer <API_KEY>
 ---
 
 작성자: 김해준
-작성일: 2026-01-29
-버전: v1.1
+작성일: 2026-02-03
+버전: v1.2

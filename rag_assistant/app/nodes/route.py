@@ -3,6 +3,7 @@
 import re
 from typing import Dict
 
+from ..config import settings
 from ..schemas import State
 
 
@@ -16,6 +17,17 @@ _KEYWORDS = (
 )
 
 _FILE_PATTERN = re.compile(r"(\.md|\.txt|\.pdf|\.docx|/|\\\\)")
+_DB_KEYWORDS = (
+    "db",
+    "database",
+    "데이터베이스",
+    "sql",
+    "쿼리",
+    "query",
+    "테이블",
+    "조회",
+    "통계",
+)
 
 
 def route(state: State) -> Dict[str, object]:
@@ -32,8 +44,13 @@ def route(state: State) -> Dict[str, object]:
         # Default to retrieval for most questions to avoid missing relevant docs.
         retrieval_needed = True
 
+    db_needed = False
+    if settings.db_enabled and question and any(keyword.lower() in question.lower() for keyword in _DB_KEYWORDS):
+        db_needed = True
+
     return {
         "retrieval_needed": retrieval_needed,
         "retrieval_query": question,
+        "db_needed": db_needed,
         "attempt": state.get("attempt", 0),
     }

@@ -6,7 +6,7 @@ from typing import Dict, List
 from openai import OpenAI
 
 from ..config import settings
-from ..schemas import Citation, Document, State
+from ..schemas import Citation, Document, QueryResult, State
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,26 @@ def _build_context(docs: List[Document]) -> str:
             chunks.append(block)
             current_len += len(block)
     return "\n\n".join(chunks)
+
+
+def _build_db_context(db_result: QueryResult | None) -> str:
+    if not db_result or not db_result.get("rows"):
+        return ""
+
+    rows = db_result.get("rows") or []
+    schema = db_result.get("schema") or {}
+    warning = db_result.get("warning")
+
+    lines: List[str] = ["[db_result]"]
+    if schema:
+        lines.append(f"schema: {schema}")
+    for row in rows[:10]:
+        lines.append(str(row))
+    if len(rows) > 10:
+        lines.append(f"... {len(rows) - 10} more rows")
+    if warning:
+        lines.append(f"warning: {warning}")
+    return "\n".join(lines)
 
 
 def _extract_output_text(response) -> str:
@@ -108,8 +128,16 @@ def generate(state: State) -> Dict[str, object]:
     question = state.get("question") or ""
     docs = state.get("docs") or []
     context = _build_context(docs)
+    db_context = _build_db_context(state.get("db_result"))
 
-    prompt = f"질문: {question}\n\n참고자료:\n{context}" if context else question
+    if context and db_context:
+        prompt = f"질문: {question}\n\n참고자료:\n{context}\n\nDB 결과:\n{db_context}"
+    elif context:
+        prompt = f"질문: {question}\n\n참고자료:\n{context}"
+    elif db_context:
+        prompt = f"질문: {question}\n\nDB 결과:\n{db_context}"
+    else:
+        prompt = question
 
     attempt = state.get("attempt", 0)
     last_error = None

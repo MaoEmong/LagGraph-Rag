@@ -6,6 +6,8 @@ from typing import Callable, Dict
 
 from langgraph.graph import END, StateGraph
 
+from .nodes.db_plan import db_plan
+from .nodes.db_query import db_query
 from .nodes.finalize import finalize
 from .nodes.generate import generate
 from .nodes.retrieve import retrieve
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def _route_decision(state: State) -> str:
-    return "retrieve" if state.get("retrieval_needed") else "generate"
+    return "retrieve" if state.get("retrieval_needed") else "db_plan"
 
 
 def _timed(name: str, func: Callable[[State], Dict[str, object]]) -> Callable[[State], Dict[str, object]]:
@@ -46,6 +48,8 @@ def build_graph() -> Callable[[State], Dict[str, object]]:
 
     graph.add_node("route", _timed("t_route_ms", route))
     graph.add_node("retrieve", _timed("t_retrieve_ms", retrieve))
+    graph.add_node("db_plan", _timed("t_db_plan_ms", db_plan))
+    graph.add_node("db_query", _timed("t_db_query_ms", db_query))
     graph.add_node("generate", _timed("t_generate_ms", generate))
     graph.add_node("finalize", _timed("t_finalize_ms", finalize))
 
@@ -55,10 +59,12 @@ def build_graph() -> Callable[[State], Dict[str, object]]:
         _route_decision,
         {
             "retrieve": "retrieve",
-            "generate": "generate",
+            "db_plan": "db_plan",
         },
     )
-    graph.add_edge("retrieve", "generate")
+    graph.add_edge("retrieve", "db_plan")
+    graph.add_edge("db_plan", "db_query")
+    graph.add_edge("db_query", "generate")
     graph.add_edge("generate", "finalize")
     graph.add_edge("finalize", END)
 

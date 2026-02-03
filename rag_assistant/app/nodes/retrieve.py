@@ -121,6 +121,12 @@ def _rerank_docs(query: str, docs: List[Document]) -> List[Document]:
 
 
 def retrieve(state: State) -> Dict[str, object]:
+    if not state.get("retrieval_needed"):
+        return {
+            "docs": state.get("docs") or [],
+            "error": None,
+        }
+
     if not settings.openai_api_key:
         return {
             "docs": [],

@@ -112,3 +112,33 @@ cd D:\ProjectRAG\rag_assistant
 
 - 경고 없음: exit code `0`
 - 경고 발생: exit code `2`
+
+---
+
+## 9) DB 연동 운영 메모 (MySQL)
+
+### 9.1 기본 설정
+
+`.env`에 다음 항목을 설정한다.
+
+```
+DB_ENABLED=true
+DB_ADAPTER=mysql
+DB_URL=mysql://user:pass@host:3306/dbname
+DB_ROW_LIMIT=100
+DB_TIMEOUT_SEC=5
+```
+
+### 9.2 스모크 테스트
+
+```powershell
+cd D:\ProjectRAG\rag_assistant
+.\.venv\Scripts\python.exe .\scripts\db_smoke_test.py --source <table_name> --limit 5 --adapter mysql
+```
+
+### 9.3 SQL 변환 단위 테스트
+
+```powershell
+cd D:\ProjectRAG\rag_assistant
+.\.venv\Scripts\python.exe .\scripts\db_sql_unit_test.py
+```

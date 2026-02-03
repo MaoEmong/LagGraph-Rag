@@ -22,8 +22,10 @@
 
 | Node     | 책임                               |
 | -------- | -------------------------------- |
-| route    | 검색 필요 여부 판단 및 retrieval_query 설정 |
+| route    | 검색/DB 필요 여부 판단 및 retrieval_query 설정 |
 | retrieve | Chroma 검색 수행 및 docs 채움           |
+| db_plan  | 자연어 → QuerySpec 생성               |
+| db_query | DB 어댑터 실행 및 db_result 채움          |
 | generate | OpenAI 호출로 답변 생성                 |
 | finalize | 응답 포맷 정리 및 반환 데이터 구성             |
 
@@ -32,9 +34,11 @@
 ```mermaid
 flowchart TD
   A[Start: question] --> B[route]
-  B -->|no_retrieval| D[generate]
   B -->|need_retrieval| C[retrieve]
-  C --> D[generate]
+  B -->|no_retrieval| P[db_plan]
+  C --> P[db_plan]
+  P --> Q[db_query]
+  Q --> D[generate]
   D --> E[finalize]
 ```
 
@@ -53,6 +57,10 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 | retrieval_needed | bool           | X  | route 판단 결과         |
 | retrieval_query  | str            | X  | 검색용 쿼리(기본=question) |
 | docs             | list[Document] | X  | 검색 결과 문서 조각         |
+| db_needed        | bool           | X  | DB 조회 필요 여부         |
+| db_query_spec    | dict           | X  | QuerySpec(JSON)          |
+| db_result        | dict           | X  | DB 결과(JSON)             |
+| db_error         | ErrorInfo      | X  | DB 오류(옵션)              |
 | answer           | str            | X  | 생성된 답변              |
 | citations        | list[Citation] | X  | 출처 정보               |
 | attempt          | int            | X  | 재시도 횟수 (default=0)  |
@@ -162,6 +170,7 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 
 * question
 * docs (optional)
+* db_result (optional)
 
 **출력(State 변경)**
 
@@ -185,6 +194,40 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 
   * 최대 2회 재시도 (attempt 증가)
   * 실패 시 error.code = LLM_ERROR
+
+### 4.5 db_plan
+
+**목표**
+
+* 자연어 질문을 QuerySpec(JSON)으로 변환한다.
+
+**입력**
+
+* question
+
+**출력(State 변경)**
+
+* db_query_spec: dict
+* db_error: ErrorInfo (optional)
+
+**비고**
+
+* 실패 시 기본 QuerySpec으로 대체하고 db_error 기록
+
+### 4.6 db_query
+
+**목표**
+
+* 선택된 DB 어댑터로 QuerySpec을 실행한다.
+
+**입력**
+
+* db_query_spec
+
+**출력(State 변경)**
+
+* db_result: dict
+* db_error: ErrorInfo (optional)
 
 ### 4.4 finalize
 

@@ -9,6 +9,7 @@
 - [프로젝트 구조](#프로젝트-구조)
 - [API 예시](#api-예시)
 - [중복 인제스트 정책](#중복-인제스트-정책)
+- [DB 연동(준비 단계)](#db-연동준비-단계)
 - [이미지 OCR 지원](#이미지-ocr-지원)
 - [리랭커 설정 (기본 OFF)](#리랭커-설정-기본-off)
 - [인코딩 이슈 (Windows PowerShell)](#인코딩-이슈-windows-powershell)
@@ -70,6 +71,7 @@ http://127.0.0.1:8000/web
 - 웹 클라이언트: `/web`
 - 체크포인트/Docstore: SQLite
 - 벡터 저장소: Chroma (Persistent)
+- DB 조회(준비 단계): QuerySpec 기반 추상화 + MySQL 어댑터
 
 ---
 
@@ -139,6 +141,37 @@ POST /chat
 
 ---
 
+## DB 연동(준비 단계)
+
+현재는 **DB 조회 추상화 + MySQL 어댑터 + 테스트 스크립트**까지 준비된 상태입니다.
+실제 DB 연결은 `.env` 설정 후 스모크 테스트로 검증합니다.
+
+필수 설정(예시):
+
+```env
+DB_ENABLED=true
+DB_ADAPTER=mysql
+DB_URL=mysql://user:pass@host:3306/dbname
+```
+
+스모크 테스트:
+
+```powershell
+cd D:\ProjectRAG\rag_assistant
+.\.venv\Scripts\python.exe .\scripts\db_smoke_test.py --source <table_name> --limit 5 --adapter mysql
+```
+
+SQL 변환 단위 테스트:
+
+```powershell
+cd D:\ProjectRAG\rag_assistant
+.\.venv\Scripts\python.exe .\scripts\db_sql_unit_test.py
+```
+
+추가 체크리스트는 `.context/09DbRoadmap.md` 참고.
+
+---
+
 ## 이미지 OCR 지원
 
 - 지원 확장자: `png`, `jpg`, `jpeg`, `webp`, `bmp`, `tif`, `tiff`
@@ -204,6 +237,8 @@ cd D:\ProjectRAG\rag_assistant
 - `.context/05IngestionSpec.md` — 인제스트 명세
 - `.context/06WorkPlan.md` — 작업 계획
 - `.context/07UnresolvedItems.md` — 결정/운영 메모
+- `.context/08DbQuerySpec.md` — DB 조회 설계
+- `.context/09DbRoadmap.md` — DB 연동 체크리스트
 
 ---
 

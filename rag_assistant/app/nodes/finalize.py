@@ -23,6 +23,10 @@ def finalize(state: State) -> Dict[str, object]:
         "citations": state.get("citations", []),
     }
 
+    db_result = state.get("db_result")
+    if db_result:
+        data["db_result"] = db_result
+
     tokens = state.get("tokens") or {}
     if tokens:
         data["tokens"] = tokens
