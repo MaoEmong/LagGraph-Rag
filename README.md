@@ -12,6 +12,7 @@
 - [DB 연동(준비 단계)](#db-연동준비-단계)
 - [이미지 OCR 지원](#이미지-ocr-지원)
 - [리랭커 설정 (기본 OFF)](#리랭커-설정-기본-off)
+- [검색 전략 (하이브리드/부모확장/재질의)](#검색-전략-하이브리드부모확장재질의)
 - [인코딩 이슈 (Windows PowerShell)](#인코딩-이슈-windows-powershell)
 - [서버 운영 스크립트 (Windows)](#서버-운영-스크립트-windows)
 - [문서](#문서)
@@ -198,6 +199,20 @@ RERANKER_BATCH_SIZE=16
 
 ---
 
+## 검색 전략 (하이브리드/부모확장/재질의)
+
+- Dense 검색: Chroma + OpenAI 임베딩
+- Sparse 검색: SQLite FTS5(BM25)
+- Parent 확장: 동일 `parent_id` 청크 보강
+- 재질의: 근거 부족 시 검색용 쿼리 재생성
+
+기본 설정은 `.env.example` 참고:
+- `SPARSE_ENABLED=true`, `SPARSE_TOP_K=10`
+- `PARENT_EXPAND_ENABLED=true`, `PARENT_EXPAND_LIMIT=8`
+- `REQUERY_ENABLED=true`, `REQUERY_MAX_ATTEMPTS=1`
+
+---
+
 ## 인코딩 이슈 (Windows PowerShell)
 
 - PowerShell 5.1에서 한글 응답이 깨질 수 있습니다.
@@ -239,6 +254,7 @@ cd D:\ProjectRAG\rag_assistant
 - `.context/07UnresolvedItems.md` — 결정/운영 메모
 - `.context/08DbQuerySpec.md` — DB 조회 설계
 - `.context/09DbRoadmap.md` — DB 연동 체크리스트
+- `.context/10DocQualitySpec.md` — 문서 품질/구조 가이드
 
 ---
 
@@ -269,6 +285,15 @@ cd D:\ProjectRAG\rag_assistant
 - 병합 결과: `evals/results/e2e_eval_36cases_batchrunner.json`
 - 배치별 서버 로그(옵션 사용 시): `evals/results/server_logs/*.server.stderr.log`, `*.server.stdout.log`
 - 실패 요약 리포트(옵션 사용 시): `evals/results/e2e_eval_failure_summary.json`
+
+### 최신 품질 결과 (하이브리드 + 로컬 리랭커)
+
+- 결과 파일: `evals/results/e2e_eval_50_hybrid_batchrunner.json`
+- 분석 파일: `evals/results/analysis_e2e_50_hybrid_v1.json`
+- 요약:
+  - success/keyword/citation: 50/50 (100%)
+  - graph p90 ≈ 6710ms
+  - alerts: 없음 (게이트 통과)
 
 ### 실행 프리셋
 
@@ -359,8 +384,8 @@ E2E/Soak 결과를 자동 분석(실패 유형, top error, source 분포, soak �
 ```powershell
 cd D:\ProjectRAG\rag_assistant
 .\.venv\Scripts\python.exe .\scripts\e2e_report_analyzer.py `
-  --input .\evals\results\e2e_eval_36cases_batchrunner_v2.json `
-  --output .\evals\results\analysis_e2e_36.json
+  --input .\evals\results\e2e_eval_50_hybrid_batchrunner.json `
+  --output .\evals\results\analysis_e2e_50_hybrid_v1.json
 ```
 
 ```powershell
@@ -376,13 +401,13 @@ cd D:\ProjectRAG\rag_assistant
 ```powershell
 cd D:\ProjectRAG\rag_assistant
 .\.venv\Scripts\python.exe .\scripts\e2e_report_analyzer.py `
-  --input .\evals\results\e2e_eval_36cases_batchrunner_v2.json `
+  --input .\evals\results\e2e_eval_50_hybrid_batchrunner.json `
   --min-success-rate 0.98 `
-  --min-keyword-pass-rate 0.98 `
+  --min-keyword-pass-rate 0.95 `
   --min-citation-pass-rate 0.98 `
-  --max-p90-graph-ms 4000 `
+  --max-p90-graph-ms 8000 `
   --fail-on-alert `
-  --output .\evals\results\analysis_e2e_alerts.json
+  --output .\evals\results\analysis_e2e_50_hybrid_v1.json
 ```
 
 

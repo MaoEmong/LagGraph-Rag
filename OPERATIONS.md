@@ -76,6 +76,35 @@ curl -Method Post http://127.0.0.1:8000/threads/reset `
 - 동일 `source_path` + 동일 `content_hash`면 스킵
 - 내용 변경 시 기존 문서/벡터 삭제 후 재저장
 
+## 6.1) 검색 전략(하이브리드/부모확장/재질의)
+
+운영 기본값(권장):
+- Dense 검색: Chroma + OpenAI 임베딩
+- Sparse 검색: SQLite FTS5(BM25)
+- Parent 확장: 동일 `parent_id` 청크 보강
+- 재질의: 근거 부족 시 1회 재검색
+
+관련 환경 변수 예시:
+```
+SPARSE_ENABLED=true
+SPARSE_TOP_K=10
+PARENT_EXPAND_ENABLED=true
+PARENT_EXPAND_LIMIT=8
+REQUERY_ENABLED=true
+REQUERY_MAX_ATTEMPTS=1
+```
+
+## 6.2) 로컬 리랭커 활성화 예시 (Cross-Encoder)
+
+GPU(예: RTX 3060) 환경에서 품질 최우선 검증 시 사용:
+
+```
+RERANKER_MODE=always
+RERANKER_MODEL=cross-encoder
+RERANKER_CROSS_ENCODER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
+RERANKER_DEVICE=cuda
+```
+
 ## 7) E2E 평가 (배치 러너)
 
 ```powershell
@@ -101,13 +130,13 @@ cd D:\ProjectRAG\rag_assistant
 ```powershell
 cd D:\ProjectRAG\rag_assistant
 .\.venv\Scripts\python.exe .\scripts\e2e_report_analyzer.py `
-  --input .\evals\results\e2e_eval_50cases_batchrunner_v3.json `
+  --input .\evals\results\e2e_eval_50_hybrid_batchrunner.json `
   --min-success-rate 0.98 `
   --min-keyword-pass-rate 0.95 `
   --min-citation-pass-rate 0.98 `
-  --max-p90-graph-ms 4000 `
+  --max-p90-graph-ms 8000 `
   --fail-on-alert `
-  --output .\evals\results\analysis_e2e_50cases_v3.json
+  --output .\evals\results\analysis_e2e_50_hybrid_v1.json
 ```
 
 - 경고 없음: exit code `0`

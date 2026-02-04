@@ -111,7 +111,10 @@ OCR_MIN_TEXT_LEN=50
 
 처리 규칙:
 
+* 개행 정규화(\r\n → \n)
+* 탭 → 공백
 * 연속 공백 정리
+* 3줄 이상 연속 개행은 2줄로 축약
 * 불필요한 헤더/푸터 제거
 * 페이지 번호 제거
 * 특수문자 정규화
@@ -178,6 +181,20 @@ ingest_files 저장 필드:
 * source_path (PK)
 * content_hash
 * updated_at
+
+### 4.9 Sparse 인덱스 저장(FTS5)
+
+목적: Sparse 검색(BM25)을 위한 텍스트 인덱스 저장
+
+테이블: `documents_fts` (SQLite FTS5)
+
+저장 필드:
+
+* chunk_id
+* parent_id
+* source_path
+* file_type
+* content
 
 ---
 

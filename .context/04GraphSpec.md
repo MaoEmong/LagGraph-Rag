@@ -27,6 +27,7 @@
 | db_plan  | 자연어 → QuerySpec 생성               |
 | db_query | DB 어댑터 실행 및 db_result 채움          |
 | generate | OpenAI 호출로 답변 생성                 |
+| requery  | 근거 부족 시 재질의 쿼리 생성/재검색 유도 |
 | finalize | 응답 포맷 정리 및 반환 데이터 구성             |
 
 ### 2.2 그래프 플로우
@@ -39,7 +40,9 @@ flowchart TD
   C --> P[db_plan]
   P --> Q[db_query]
   Q --> D[generate]
-  D --> E[finalize]
+  D --> R[requery]
+  R -->|requery| C
+  R -->|finalize| E[finalize]
 ```
 
 ---
@@ -64,6 +67,7 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 | answer           | str            | X  | 생성된 답변              |
 | citations        | list[Citation] | X  | 출처 정보               |
 | attempt          | int            | X  | 재시도 횟수 (default=0)  |
+| requery_needed   | bool           | X  | 재질의 필요 여부          |
 | timing           | dict           | X  | 성능 측정(옵션)           |
 | tokens           | dict           | X  | 토큰 사용량(옵션)         |
 | error            | ErrorInfo      | X  | 오류 정보(옵션)           |
@@ -132,8 +136,8 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 
 **목표**
 
-* Chroma에서 top_k 검색을 수행한다.
-* docs를 채운다.
+* Dense(Chroma) + Sparse(FTS5) 하이브리드 검색을 수행한다.
+* 결과를 병합/중복 제거 후 docs를 채운다.
 
 **입력**
 
@@ -147,6 +151,9 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 
 * top_k = 5
 * collection = documents
+* sparse_top_k = 10
+* parent_expand_enabled = true
+* parent_expand_limit = 8
 * reranker_mode=auto 또는 always일 경우:
   * 초기 검색은 max(top_k, rerank_top_k)
   * 임베딩 기반 재정렬 후 top_k만 유지
@@ -165,6 +172,7 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 **목표**
 
 * OpenAI LLM을 호출하여 답변을 생성한다.
+* 근거(context/DB 결과)가 없으면 답변을 제한한다.
 
 **입력**
 
@@ -194,6 +202,33 @@ State는 LangGraph 실행 전/중/후에 지속되는 단일 객체이며, Check
 
   * 최대 2회 재시도 (attempt 증가)
   * 실패 시 error.code = LLM_ERROR
+
+### 4.4 requery
+
+**목표**
+
+* 근거 부족 시 재질의 쿼리를 생성한다.
+* 재질의 횟수 제한을 준수한다.
+* 문서/출처 수가 기준 미달인 경우에만 재질의를 수행한다.
+
+**입력**
+
+* question
+* answer
+* citations
+* attempt
+
+**출력(State 변경)**
+
+* requery_needed: bool
+* retrieval_query: str (재질의 쿼리)
+* attempt: int (증가)
+
+**재질의 조건(기본)**
+
+* citations 개수 < `requery_min_citations`
+* docs 개수 < `requery_min_docs`
+* answer가 `no_context_message`일 경우
 
 ### 4.5 db_plan
 
