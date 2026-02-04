@@ -255,6 +255,19 @@ cd D:\ProjectRAG\rag_assistant
 - `.context/08DbQuerySpec.md` — DB 조회 설계
 - `.context/09DbRoadmap.md` — DB 연동 체크리스트
 - `.context/10DocQualitySpec.md` — 문서 품질/구조 가이드
+- `.context/11QualityRagPlan.md` — 품질 최우선 개선 계획
+- `.context/12WorkFlowTimeline.md` — 작업 진행 흐름 다이어그램
+
+---
+
+## 최종 변경 요약 (현재 상태)
+
+- 하이브리드 검색: Chroma + SQLite FTS5
+- Parent 확장: parent_id 기준 청크 확장
+- 로컬 리랭커: Cross-Encoder (GPU 사용)
+- 근거 기반 답변 제한
+- 재질의(Re-query) 노드 도입 및 조건 정교화
+- 통합 E2E 50케이스 + 분석기 게이트 통과
 
 ---
 
