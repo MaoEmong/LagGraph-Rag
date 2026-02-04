@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict
+from typing import Dict, List
 
 from openai import OpenAI
 
@@ -90,6 +90,17 @@ def _normalize_spec(raw: Dict[str, object], question: str) -> QuerySpec:
     return spec
 
 
+def _model_candidates(primary: str, fallbacks: str) -> List[str]:
+    candidates = [primary]
+    if fallbacks:
+        candidates.extend([item.strip() for item in fallbacks.split(",") if item.strip()])
+    deduped: List[str] = []
+    for model in candidates:
+        if model not in deduped:
+            deduped.append(model)
+    return deduped
+
+
 def db_plan(state: State) -> Dict[str, object]:
     if not state.get("db_needed"):
         return {
@@ -117,28 +128,36 @@ def db_plan(state: State) -> Dict[str, object]:
         }
 
     try:
-        client = _get_client()
-        response = client.responses.create(
-            model=settings.db_plan_model,
-            input=question,
-            instructions=_SYSTEM_INSTRUCTIONS,
-            temperature=settings.db_plan_temperature,
-            max_output_tokens=settings.db_plan_max_output_tokens,
-        )
-        output_text = getattr(response, "output_text", "") or ""
-        if not output_text:
-            output_text = ""
-            for item in getattr(response, "output", []) or []:
-                for content in getattr(item, "content", []) or []:
-                    text = getattr(content, "text", None)
-                    if text:
-                        output_text += text
-        raw = _extract_json(output_text)
-        spec = _normalize_spec(raw, question)
-        return {
-            "db_query_spec": spec,
-            "db_error": None,
-        }
+        models = _model_candidates(settings.db_plan_model, settings.db_plan_model_fallbacks)
+        last_error = None
+        for model in models:
+            try:
+                client = _get_client()
+                response = client.responses.create(
+                    model=model,
+                    input=question,
+                    instructions=_SYSTEM_INSTRUCTIONS,
+                    temperature=settings.db_plan_temperature,
+                    max_output_tokens=settings.db_plan_max_output_tokens,
+                )
+                output_text = getattr(response, "output_text", "") or ""
+                if not output_text:
+                    output_text = ""
+                    for item in getattr(response, "output", []) or []:
+                        for content in getattr(item, "content", []) or []:
+                            text = getattr(content, "text", None)
+                            if text:
+                                output_text += text
+                raw = _extract_json(output_text)
+                spec = _normalize_spec(raw, question)
+                return {
+                    "db_query_spec": spec,
+                    "db_error": None,
+                }
+            except Exception as exc:
+                last_error = exc
+                logger.exception("QuerySpec 생성 실패: %s", model)
+        raise RuntimeError(last_error)
     except Exception as exc:
         logger.exception("QuerySpec 생성 실패")
         return {

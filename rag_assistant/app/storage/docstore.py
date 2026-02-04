@@ -34,6 +34,12 @@ class Docstore:
             )
             conn.execute(
                 """
+                CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts
+                USING fts5(chunk_id, parent_id, source_path, file_type, content)
+                """
+            )
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ingest_files (
                     source_path TEXT PRIMARY KEY,
                     content_hash TEXT NOT NULL,
@@ -45,6 +51,7 @@ class Docstore:
     def save_chunks(self, chunks: Iterable[Dict[str, Any]]) -> int:
         now = datetime.utcnow().isoformat()
         rows: List[tuple] = []
+        fts_rows: List[tuple] = []
         for chunk in chunks:
             rows.append(
                 (
@@ -56,6 +63,15 @@ class Docstore:
                     chunk.get("created_at", now),
                 )
             )
+            fts_rows.append(
+                (
+                    chunk["chunk_id"],
+                    chunk.get("parent_id"),
+                    chunk["source_path"],
+                    chunk["file_type"],
+                    chunk["content"],
+                )
+            )
         with self._connect() as conn:
             conn.executemany(
                 """
@@ -65,11 +81,19 @@ class Docstore:
                 """,
                 rows,
             )
+            conn.executemany(
+                """
+                INSERT INTO documents_fts (chunk_id, parent_id, source_path, file_type, content)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                fts_rows,
+            )
         return len(rows)
 
     def delete_chunks_by_source_path(self, source_path: str) -> int:
         with self._connect() as conn:
             cur = conn.execute("DELETE FROM documents WHERE source_path = ?", (source_path,))
+            conn.execute("DELETE FROM documents_fts WHERE source_path = ?", (source_path,))
             return cur.rowcount
 
     def get_chunk(self, chunk_id: str) -> Optional[Dict[str, Any]]:
@@ -96,3 +120,36 @@ class Docstore:
                 """,
                 (source_path, content_hash, now),
             )
+
+    def search_fts(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        if not query:
+            return []
+        limit = max(1, int(limit))
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                SELECT chunk_id, parent_id, source_path, file_type, content,
+                       bm25(documents_fts) AS score
+                FROM documents_fts
+                WHERE documents_fts MATCH ?
+                ORDER BY score
+                LIMIT ?
+                """,
+                (query, limit),
+            )
+            rows = cur.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_chunks_by_parent_id(self, parent_id: str, limit: int = 0) -> List[Dict[str, Any]]:
+        if not parent_id:
+            return []
+        limit = max(0, int(limit))
+        sql = "SELECT * FROM documents WHERE parent_id = ? ORDER BY created_at ASC"
+        params = [parent_id]
+        if limit > 0:
+            sql += " LIMIT ?"
+            params.append(limit)
+        with self._connect() as conn:
+            cur = conn.execute(sql, params)
+            rows = cur.fetchall()
+        return [dict(row) for row in rows]

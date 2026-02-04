@@ -7,6 +7,8 @@ class Document(TypedDict, total=False):
     metadata: Dict[str, Any]
     score: float
     rerank_score: float
+    sparse_score: float
+    hybrid_score: float
 
 
 class Citation(TypedDict, total=False):
@@ -50,6 +52,7 @@ class State(TypedDict, total=False):
     question: str
     retrieval_needed: bool
     retrieval_query: str
+    requery_needed: bool
     docs: List[Document]
     db_needed: bool
     db_query_spec: QuerySpec

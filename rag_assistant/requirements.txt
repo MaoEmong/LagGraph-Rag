@@ -15,3 +15,4 @@ pytesseract
 pymupdf
 pillow
 pymysql
+sentence-transformers

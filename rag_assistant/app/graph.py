@@ -10,6 +10,7 @@ from .nodes.db_plan import db_plan
 from .nodes.db_query import db_query
 from .nodes.finalize import finalize
 from .nodes.generate import generate
+from .nodes.requery import requery
 from .nodes.retrieve import retrieve
 from .nodes.route import route
 from .schemas import State
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 def _route_decision(state: State) -> str:
     return "retrieve" if state.get("retrieval_needed") else "db_plan"
+
+
+def _requery_decision(state: State) -> str:
+    return "retrieve" if state.get("requery_needed") else "finalize"
 
 
 def _timed(name: str, func: Callable[[State], Dict[str, object]]) -> Callable[[State], Dict[str, object]]:
@@ -51,6 +56,7 @@ def build_graph() -> Callable[[State], Dict[str, object]]:
     graph.add_node("db_plan", _timed("t_db_plan_ms", db_plan))
     graph.add_node("db_query", _timed("t_db_query_ms", db_query))
     graph.add_node("generate", _timed("t_generate_ms", generate))
+    graph.add_node("requery", _timed("t_requery_ms", requery))
     graph.add_node("finalize", _timed("t_finalize_ms", finalize))
 
     graph.set_entry_point("route")
@@ -65,7 +71,15 @@ def build_graph() -> Callable[[State], Dict[str, object]]:
     graph.add_edge("retrieve", "db_plan")
     graph.add_edge("db_plan", "db_query")
     graph.add_edge("db_query", "generate")
-    graph.add_edge("generate", "finalize")
+    graph.add_edge("generate", "requery")
+    graph.add_conditional_edges(
+        "requery",
+        _requery_decision,
+        {
+            "retrieve": "retrieve",
+            "finalize": "finalize",
+        },
+    )
     graph.add_edge("finalize", END)
 
     return graph.compile()

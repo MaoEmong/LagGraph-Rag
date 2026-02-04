@@ -14,6 +14,7 @@ _SYSTEM_INSTRUCTIONS = """너는 개인용 AI 비서다.
 반드시 제공된 참고자료(context) 안의 정보만 사용해 답한다.
 참고자료에 없는 내용은 추측하지 말고 모른다고 답한다.
 질문이 짧은 사실 질의라면, 참고자료의 표현을 우선해 짧고 단정적으로 답한다.
+답변에는 가능한 한 근거(출처) 단서를 포함해라.
 """
 
 
@@ -21,6 +22,17 @@ def _get_client() -> OpenAI:
     if settings.openai_base_url:
         return OpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url, timeout=settings.openai_timeout_sec)
     return OpenAI(api_key=settings.openai_api_key, timeout=settings.openai_timeout_sec)
+
+
+def _model_candidates(primary: str, fallbacks: str) -> List[str]:
+    candidates = [primary]
+    if fallbacks:
+        candidates.extend([item.strip() for item in fallbacks.split(",") if item.strip()])
+    deduped: List[str] = []
+    for model in candidates:
+        if model not in deduped:
+            deduped.append(model)
+    return deduped
 
 
 def _build_context(docs: List[Document]) -> str:
@@ -130,6 +142,14 @@ def generate(state: State) -> Dict[str, object]:
     context = _build_context(docs)
     db_context = _build_db_context(state.get("db_result"))
 
+    if settings.require_context_for_answer and not context and not db_context:
+        return {
+            "answer": settings.no_context_message,
+            "citations": [],
+            "error": None,
+            "attempt": state.get("attempt", 0),
+        }
+
     if context and db_context:
         prompt = f"질문: {question}\n\n참고자료:\n{context}\n\nDB 결과:\n{db_context}"
     elif context:
@@ -142,29 +162,31 @@ def generate(state: State) -> Dict[str, object]:
     attempt = state.get("attempt", 0)
     last_error = None
 
+    models = _model_candidates(settings.llm_model, settings.llm_model_fallbacks)
     for _ in range(2):
-        try:
-            client = _get_client()
-            response = client.responses.create(
-                model=settings.llm_model,
-                input=prompt,
-                instructions=_SYSTEM_INSTRUCTIONS,
-                temperature=settings.temperature,
-                max_output_tokens=settings.max_output_tokens,
-            )
-            answer = _extract_output_text(response)
-            tokens = _extract_tokens(response)
-            return {
-                "answer": answer,
-                "citations": _build_citations(docs),
-                "tokens": tokens,
-                "error": None,
-                "attempt": attempt,
-            }
-        except Exception as exc:
-            attempt += 1
-            last_error = exc
-            logger.exception("LLM 호출 실패")
+        for model in models:
+            try:
+                client = _get_client()
+                response = client.responses.create(
+                    model=model,
+                    input=prompt,
+                    instructions=_SYSTEM_INSTRUCTIONS,
+                    temperature=settings.temperature,
+                    max_output_tokens=settings.max_output_tokens,
+                )
+                answer = _extract_output_text(response)
+                tokens = _extract_tokens(response)
+                return {
+                    "answer": answer,
+                    "citations": _build_citations(docs),
+                    "tokens": tokens,
+                    "error": None,
+                    "attempt": attempt,
+                }
+            except Exception as exc:
+                last_error = exc
+                logger.exception("LLM 호출 실패: %s", model)
+        attempt += 1
 
     return {
         "answer": "",

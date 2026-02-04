@@ -119,6 +119,7 @@ _WEB_HTML = """<!doctype html>
       font-size: 13px;
     }
     .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; color: var(--muted); }
+    .mono-block { font-family: Consolas, "Courier New", monospace; font-size: 12px; color: var(--muted); white-space: pre-wrap; }
     details.advanced {
       margin-top: 10px;
       border: 1px dashed var(--line);
@@ -202,6 +203,8 @@ _WEB_HTML = """<!doctype html>
         <div id="answer" class="answer"></div>
         <label style="margin-top:10px;">출처</label>
         <ul id="sources" class="sources"></ul>
+        <label style="margin-top:10px;">DB 결과</label>
+        <div id="dbResult" class="mono-block"></div>
         <div id="meta" class="mono"></div>
       </article>
     </section>
@@ -271,6 +274,7 @@ _WEB_HTML = """<!doctype html>
           $("answer").textContent = "";
           $("sources").innerHTML = "";
           $("meta").textContent = "";
+          $("dbResult").textContent = "";
           msg("chat 요청 실패: " + (data?.error?.message || "알 수 없는 오류"), true);
           return;
         }
@@ -286,7 +290,11 @@ _WEB_HTML = """<!doctype html>
         }
         const total = payload?.tokens?.total ?? "-";
         const tTotal = payload?.timing?.t_total_ms ?? "-";
-        $("meta").textContent = `tokens.total=${total} | timing.t_total_ms=${tTotal}`;
+        const dbCount = payload?.db_result?.row_count ?? "-";
+        $("meta").textContent = `tokens.total=${total} | timing.t_total_ms=${tTotal} | db.row_count=${dbCount}`;
+        $("dbResult").textContent = payload?.db_result
+          ? JSON.stringify(payload.db_result, null, 2)
+          : "";
         msg("완료");
       } catch (err) {
         msg("요청 오류: " + err, true);
@@ -364,6 +372,7 @@ _WEB_HTML = """<!doctype html>
       $("answer").textContent = "";
       $("sources").innerHTML = "";
       $("meta").textContent = "";
+      $("dbResult").textContent = "";
       msg("출력 영역을 비웠습니다.");
     }
 
